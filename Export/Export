@@ -1,0 +1,97 @@
+format = 0 # 0=FBX, 1=DAE
+Path = "" # absolute path with double backslashes between directory names. Blank quotes ("") will dump into the current .blend path.
+
+import bpy
+import math
+
+bpy.ops.wm.save_mainfile() #simply saves
+
+
+#DAE exporter ============================
+def ExportDAE(x,fullpath):
+    #transform
+    bpy.ops.object.location_clear(clear_delta=False)
+    bpy.ops.transform.rotate(value=4.71239, axis=(1, 0, 0), constraint_axis=(True, False, False), constraint_orientation='GLOBAL', mirror=False, proportional='DISABLED', proportional_edit_falloff='SMOOTH', proportional_size=1)
+    bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+    
+    #call exporter
+    bpy.ops.wm.collada_export(
+    filepath=fullpath, 
+    check_existing=True, 
+    filter_collada=True, 
+    filter_folder=True, 
+    apply_modifiers=True, 
+    selected=True
+    )
+    
+    
+#FBX exporter ============================
+def ExportFBX(x, fullpath):
+    #transform
+    bpy.ops.object.location_clear(clear_delta=False)
+    bpy.ops.transform.resize(value=(100,100,100), constraint_axis=(False, False, False), constraint_orientation='GLOBAL', mirror=False, proportional='DISABLED', proportional_edit_falloff='SMOOTH', proportional_size=1)
+    bpy.ops.transform.rotate(value=4.71239, axis=(1, 0, 0), constraint_axis=(True, False, False), constraint_orientation='GLOBAL', mirror=False, proportional='DISABLED', proportional_edit_falloff='SMOOTH', proportional_size=1)
+    bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+    
+    #call exporter
+    fullpath = fullpath+".fbx"
+    bpy.ops.export_scene.fbx(
+    filepath=fullpath, 
+    check_existing=True, 
+    filter_glob="*.fbx", 
+    use_selection=True, 
+    batch_mode='OFF', 
+    use_metadata=True
+    )
+
+
+#Main Export Function ============================
+def ExportProp(x):
+    
+    #create duplicate of object and save name
+    exportname = x.name
+    xCopy = x.copy()
+    xCopy.data = x.data.copy()
+    bpy.context.scene.objects.link(xCopy)
+    
+    #select copy of object
+    bpy.ops.object.select_all(action="DESELECT")
+    xCopy.select = True
+    
+    #calculate path
+    if Path != "":
+        exportpath = Path
+    else:
+        exportpath = bpy.path.abspath("//")
+    fileextension = '' #.dae automatically adds the extension
+    fullpath = exportpath + exportname + fileextension
+    
+    #export in desired format
+    if format == 0:
+        ExportFBX(xCopy,fullpath)
+    elif format == 1:
+        ExportDAE(xCopy,fullpath)
+    else:
+        print("Error: invalid format. Choose one of supported numbers for format")
+    
+    #delete duplicate
+    bpy.ops.object.delete()
+
+
+#Execution ============================
+print("Export started")
+props = []
+selected = bpy.context.selected_objects
+for x in selected: #add all the objects to the props list
+    props.append(x)
+    print("added object to list: " + x.name)
+
+for prop in props:
+	bpy.ops.object.select_all(action="DESELECT")
+	prop.select = True
+	ExportProp(prop)
+
+for prop in props:
+    prop.select = True
+
+print("Export finished")
